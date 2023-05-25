@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { PUBLIC_API_SERVER } from '$env/static/public';
+  import { PUBLIC_API_SERVER, IS_LOCAL } from '$env/static/public';
 
   let searchString = '';
   $: tags = searchString.split(',').map((tag) => tag.trim().toLowerCase());
@@ -140,7 +140,9 @@
     {#each images as image}
       <div class={`thumbnail ${image.provider}`}>
         <picture on:click={() => openDialog(image)}>
-          <source srcset={image.local_url} />
+          {#if IS_LOCAL}
+            <source srcset={image.local_url} />
+          {/if}
           <img src={image.url} alt={image.title} />
         </picture>
       </div>
@@ -151,7 +153,9 @@
   <dialog bind:this={modal} on:click={() => modal.close()}>
     {#if selectedImage}
       <picture>
-        <source srcset={selectedImage.local_url} />
+        {#if IS_LOCAL}
+          <source srcset={selectedImage.local_url} />
+        {/if}
         <img src={selectedImage.url} alt={selectedImage.title} />
       </picture>
     {/if}
