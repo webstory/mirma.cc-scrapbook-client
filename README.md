@@ -1,38 +1,39 @@
-# create-svelte
+# Furry site favorite browser
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+This is a simple site that allows you to browse your scraped images from the local filesystem and remote s3 bucket.
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
+## Installation
 
 ```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
+yarn install
+yarn dev
 ```
 
-## Developing
+## Setup
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Edit your `.env` file to include the following:
+
+```
+PUBLIC_API_SERVER="http://localhost:3000"
+```
+
+This is the [Furry site favorite explorer server](https://github.com/webstory/mirma.cc-scrapbook-server) server running locally.
+
+You must setup the api server first before running this project.
+
+## Running
 
 ```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+yarn dev
 ```
 
-## Building
+Browse to [http://localhost:5173/favorites](http://localhost:5173/favorites) and voila!
 
-To create a production version of your app:
+## Notes
 
-```bash
-npm run build
-```
+- This is a work in progress
+- Ignore about sverdle, it's just a template from svelte-kit
 
-You can preview the production build with `npm run preview`.
+## LICENSE
 
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+MIT
