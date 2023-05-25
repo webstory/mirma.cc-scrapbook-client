@@ -140,7 +140,7 @@
     {#each images as image}
       <div class={`thumbnail ${image.provider}`}>
         <picture on:click={() => openDialog(image)}>
-          {#if IS_LOCAL}
+          {#if IS_LOCAL === 'true'}
             <source srcset={image.local_url} />
           {/if}
           <img src={image.url} alt={image.title} />
@@ -153,7 +153,7 @@
   <dialog bind:this={modal} on:click={() => modal.close()}>
     {#if selectedImage}
       <picture>
-        {#if IS_LOCAL}
+        {#if IS_LOCAL === 'true'}
           <source srcset={selectedImage.local_url} />
         {/if}
         <img src={selectedImage.url} alt={selectedImage.title} />
