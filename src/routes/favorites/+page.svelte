@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { PUBLIC_API_SERVER, PUBLIC_IS_LOCAL } from '$env/static/public';
+  import { createImageObject } from './image';
 
   let searchString = '';
   $: tags = searchString.split(',').map((tag) => tag.trim().toLowerCase());
@@ -31,38 +32,16 @@
 
     if (res.ok) {
       const data = await res.json();
-      let ib_submissions = data.filter((s) => s.provider === 'inkbunny');
-      let fa_submissions = data.filter((s) => s.provider === 'furaffinity');
 
-      let ib_images = ib_submissions.map((s) => {
-        return {
-          _id: s._id,
-          local_url: `${PUBLIC_API_SERVER}/img/local/inkbunny/${s.username}/${s.file_name}`,
-          url: `${PUBLIC_API_SERVER}/signed-url/hoya-inkbunny-pictures/${s.username}/${s.file_name}`,
-          thumbnail_url: `${PUBLIC_API_SERVER}/signed-url/inkbunny-thumbnails/${s.username}/${s.file_name}`,
-          title: s.title,
-          provider: s.provider,
-          create_timestamp: s.create_timestamp,
-        };
-      });
-
-      let fa_images = fa_submissions.map((s) => {
-        return {
-          _id: s._id,
-          local_url: `${PUBLIC_API_SERVER}/img/local/furaffinity/${s.username}/${s.file_name}`,
-          url: `${PUBLIC_API_SERVER}/signed-url/hoya-furaffinity-pictures/${s.username}/${s.file_name}`,
-          thumbnail_url: `${PUBLIC_API_SERVER}/signed-url/furaffinity-thumbnails/${s.username}/${s.file_name}`,
-          title: s.title,
-          provider: s.provider,
-          create_timestamp: s.create_timestamp,
-        };
-      });
-
-      images = [...ib_images, ...fa_images].sort((a, b) => b.create_timestamp - a.create_timestamp);
+      images = data.map((submission) => createImageObject(submission));
     }
   };
 
   const doContinueSearch = async () => {
+    if (images.length === 0) {
+      return;
+    }
+
     const lastImage = images.at(-1);
 
     const res = await fetch(
@@ -71,43 +50,15 @@
 
     if (res.ok) {
       const data = await res.json();
-      let ib_submissions = data.filter((s) => s.provider === 'inkbunny');
-      let fa_submissions = data.filter((s) => s.provider === 'furaffinity');
-
-      let ib_images = ib_submissions.map((s) => {
-        return {
-          _id: s._id,
-          local_url: `${PUBLIC_API_SERVER}/img/local/inkbunny/${s.username}/${s.file_name}`,
-          url: `${PUBLIC_API_SERVER}/signed-url/hoya-inkbunny-pictures/${s.username}/${s.file_name}`,
-          thumbnail_url: `${PUBLIC_API_SERVER}/signed-url/inkbunny-thumbnails/${s.username}/${s.file_name}`,
-          title: s.title,
-          provider: s.provider,
-          create_timestamp: s.create_timestamp,
-        };
-      });
-
-      let fa_images = fa_submissions.map((s) => {
-        return {
-          _id: s._id,
-          local_url: `${PUBLIC_API_SERVER}/img/local/furaffinity/${s.username}/${s.file_name}`,
-          url: `${PUBLIC_API_SERVER}/signed-url/hoya-furaffinity-pictures/${s.username}/${s.file_name}`,
-          thumbnail_url: `${PUBLIC_API_SERVER}/signed-url/furaffinity-thumbnails/${s.username}/${s.file_name}`,
-          title: s.title,
-          provider: s.provider,
-          create_timestamp: s.create_timestamp,
-        };
-      });
 
       let concatedImages = [...images];
-      [...ib_images, ...fa_images]
-        .sort((a, b) => b.create_timestamp - a.create_timestamp)
-        .forEach((image) => {
-          if (concatedImages.findLastIndex((i) => i._id === image._id) === -1) {
-            concatedImages.push(image);
-          } else {
-            console.log('duplicate');
-          }
-        });
+      const newImages = data.map((submission) => createImageObject(submission));
+
+      newImages.forEach((image) => {
+        if (concatedImages.findLastIndex((i) => i._id === image._id) === -1) {
+          concatedImages.push(image);
+        }
+      });
       images = concatedImages;
     }
   };
@@ -139,22 +90,28 @@
     />
     <button class="btn" on:click={doSearch}>Search</button>
   </nav>
-
   <div class="gallery">
     {#each images as image}
-      <div class={`thumbnail ${image.provider}`}>
+      <figure class={`thumbnail ${image.provider}`}>
         <picture on:click={() => openDialog(image)}>
           {#if PUBLIC_IS_LOCAL === 'true'}
             <source srcset={image.local_url} />
           {/if}
           <img src={image.thumbnail_url} alt={image.title} />
         </picture>
-      </div>
+        <figcaption>{image.title}<br /><span class="artist">by {image.username}</span></figcaption>
+      </figure>
     {/each}
   </div>
   <div id="loadMore">...</div>
 
-  <dialog bind:this={modal} on:click={() => modal.close()}>
+  <dialog
+    bind:this={modal}
+    on:click={() => {
+      selectedImage = null;
+      modal.close();
+    }}
+  >
     {#if selectedImage}
       <picture>
         {#if PUBLIC_IS_LOCAL === 'true'}
@@ -180,12 +137,16 @@
   }
 
   .search-bar {
+    z-index: 10;
+    position: sticky;
+    top: 0;
+    padding: 1rem;
+    background-image: linear-gradient(var(--color-bg-1) 80%, transparent);
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: 1rem;
-    margin-bottom: 1rem;
     width: 100%;
   }
 
@@ -208,18 +169,47 @@
   }
 
   .gallery {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
+    display: grid;
+    width: 100%;
+    height: auto;
+    grid-gap: 1rem;
+    grid-template-columns: repeat(auto-fill, calc(200px + 0.5rem));
     justify-content: center;
   }
 
   .gallery .thumbnail {
+    position: relative;
     width: 200px;
     height: 200px;
     overflow: hidden;
     border-radius: 0.5rem;
     border: 3px solid brown;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .gallery .thumbnail:hover {
+    transform: rotate(-2deg);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  }
+
+  .gallery .thumbnail figcaption {
+    position: absolute;
+    width: 100%;
+    bottom: 0;
+    text-align: center;
+    font-size: 1em;
+    font-weight: bold;
+    color: #ddd;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 0.1rem 0;
+  }
+
+  .gallery .thumbnail figcaption .artist {
+    font-size: 0.8em;
+    font-weight: normal;
   }
 
   .gallery .thumbnail.inkbunny {
@@ -242,6 +232,8 @@
     height: auto;
     max-width: 100%;
     max-height: 100%;
+    border: none;
+    background-color: rgba(0, 0, 0, 0.5);
   }
 
   dialog picture * {
