@@ -39,6 +39,7 @@
           _id: s._id,
           local_url: `${PUBLIC_API_SERVER}/img/local/inkbunny/${s.username}/${s.file_name}`,
           url: `${PUBLIC_API_SERVER}/signed-url/hoya-inkbunny-pictures/${s.username}/${s.file_name}`,
+          thumbnail_url: `${PUBLIC_API_SERVER}/signed-url/inkbunny-thumbnails/${s.username}/${s.file_name}`,
           title: s.title,
           provider: s.provider,
           create_timestamp: s.create_timestamp,
@@ -50,6 +51,7 @@
           _id: s._id,
           local_url: `${PUBLIC_API_SERVER}/img/local/furaffinity/${s.username}/${s.file_name}`,
           url: `${PUBLIC_API_SERVER}/signed-url/hoya-furaffinity-pictures/${s.username}/${s.file_name}`,
+          thumbnail_url: `${PUBLIC_API_SERVER}/signed-url/furaffinity-thumbnails/${s.username}/${s.file_name}`,
           title: s.title,
           provider: s.provider,
           create_timestamp: s.create_timestamp,
@@ -143,7 +145,7 @@
           {#if PUBLIC_IS_LOCAL === 'true'}
             <source srcset={image.local_url} />
           {/if}
-          <img src={image.url} alt={image.title} />
+          <img src={image.thumbnail_url} alt={image.title} />
         </picture>
       </div>
     {/each}
