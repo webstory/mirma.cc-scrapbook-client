@@ -28,22 +28,28 @@ export interface SubmissionDetail {
   pools?: string[];
 }
 
+export interface PoolDetail {
+  _id: string;
+  provider: string;
+  pool_id: string | number;
+  name: string;
+  description: string;
+  files: number[];
+}
+
 export interface ProviderConfig {
   imageUrl: string;
-  signedUrl: string;
   thumbnailUrl: string;
 }
 
 export const providerMap: { [key in Provider]: ProviderConfig } = {
   inkbunny: {
-    imageUrl: '/img/local/inkbunny',
-    signedUrl: '/signed-url/hoya-inkbunny-pictures',
-    thumbnailUrl: '/signed-url/inkbunny-thumbnails',
+    imageUrl: '/img/inkbunny',
+    thumbnailUrl: '/img/inkbunny-thumbnails',
   },
   furaffinity: {
-    imageUrl: '/img/local/furaffinity',
-    signedUrl: '/signed-url/hoya-furaffinity-pictures',
-    thumbnailUrl: '/signed-url/furaffinity-thumbnails',
+    imageUrl: '/img/furaffinity',
+    thumbnailUrl: '/img/furaffinity-thumbnails',
   },
 };
 
@@ -51,8 +57,7 @@ export const createImageObject = (s: SubmissionDetail) => {
   const provider = providerMap[s.provider];
   return {
     ...s,
-    local_url: `${PUBLIC_API_SERVER}${provider.imageUrl}/${s.username}/${s.file_name}`,
-    url: `${PUBLIC_API_SERVER}${provider.signedUrl}/${s.username}/${s.file_name}`,
-    thumbnail_url: `${PUBLIC_API_SERVER}${provider.thumbnailUrl}/${s.username}/${s.file_name}`,
+    urls: [`${PUBLIC_API_SERVER}${provider.imageUrl}/${s.username}/${s.file_name}`],
+    thumbnail_urls: [`${PUBLIC_API_SERVER}${provider.thumbnailUrl}/${s.username}/${s.file_name}`],
   };
 };
