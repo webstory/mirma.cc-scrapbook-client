@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { PUBLIC_API_SERVER, PUBLIC_IS_LOCAL } from '$env/static/public';
+  import { PUBLIC_API_SERVER } from '$env/static/public';
   import { createImageObject } from './image';
+  import LazyImg from './lazy-img.svelte';
 
   let searchString = '';
   $: tags = searchString.split(',').map((tag) => tag.trim().toLowerCase());
@@ -11,21 +12,34 @@
   let selectedImage = null;
 
   let observer;
+  let lazyLoadImageObserver;
 
   onMount(() => {
-    observer = new IntersectionObserver(handleIntersect, {
-      root: null,
-      rootMargin: '0px',
-      threshold: 0.1,
-    });
+    observer = new IntersectionObserver(
+      (entries) => {
+        if (images.length > 0 && entries[0].isIntersecting) {
+          doContinueSearch();
+        }
+      },
+      {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.1,
+      }
+    );
     observer.observe(document.getElementById('loadMore'));
-  });
 
-  const handleIntersect = (entries) => {
-    if (images.length > 0 && entries[0].isIntersecting) {
-      doContinueSearch();
-    }
-  };
+    lazyLoadImageObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          const src = img.getAttribute('data-src');
+          img.setAttribute('src', src);
+          lazyLoadImageObserver.unobserve(img);
+        }
+      });
+    });
+  });
 
   const doSearch = async () => {
     const res = await fetch(`${PUBLIC_API_SERVER}/search/tags?q=${tags.join(',')}`);
@@ -72,6 +86,9 @@
     if (observer) {
       observer.disconnect();
     }
+    if (lazyLoadImageObserver) {
+      lazyLoadImageObserver.disconnect();
+    }
   });
 </script>
 
@@ -92,13 +109,8 @@
   </nav>
   <div class="gallery">
     {#each images as image}
-      <figure class={`thumbnail ${image.provider}`}>
-        <picture on:click={() => openDialog(image)}>
-          {#if PUBLIC_IS_LOCAL === 'true'}
-            <source srcset={image.local_url} />
-          {/if}
-          <img src={image.thumbnail_url} alt={image.title} />
-        </picture>
+      <figure class={`thumbnail ${image.provider}`} on:click={() => openDialog(image)}>
+        <LazyImg srcset={image.thumbnail_urls} alt={image.title} />
         <figcaption>{image.title}<br /><span class="artist">by {image.username}</span></figcaption>
       </figure>
     {/each}
@@ -113,12 +125,7 @@
     }}
   >
     {#if selectedImage}
-      <picture>
-        {#if PUBLIC_IS_LOCAL === 'true'}
-          <source srcset={selectedImage.local_url} />
-        {/if}
-        <img src={selectedImage.url} alt={selectedImage.title} />
-      </picture>
+      <LazyImg srcset={selectedImage.urls} alt={selectedImage.title} />
     {/if}
   </dialog>
 </div>
