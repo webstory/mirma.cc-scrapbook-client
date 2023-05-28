@@ -23,8 +23,8 @@
       },
       {
         root: null,
-        rootMargin: '0px',
-        threshold: 0.1,
+        rootMargin: '400px',
+        threshold: 1,
       }
     );
     observer.observe(document.getElementById('loadMore'));
