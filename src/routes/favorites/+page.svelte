@@ -1,4 +1,6 @@
 <script lang="ts">
+  import type { SubmissionDetail, ImageObject } from './image';
+
   import { onMount, onDestroy } from 'svelte';
   import { PUBLIC_API_SERVER } from '$env/static/public';
   import { createImageObject } from './image';
@@ -6,96 +8,96 @@
 
   let searchString = '';
   $: tags = searchString.split(',').map((tag) => tag.trim().toLowerCase());
-  let images = [];
+  let images: ImageObject[] = [];
 
   let modal: HTMLDialogElement;
-  let selectedImage = null;
+  let selectedImage: ImageObject | null = null;
 
-  let observer;
-  let lazyLoadImageObserver;
+    let observer: IntersectionObserver;
+    let lazyLoadImageObserver: IntersectionObserver;
 
-  onMount(() => {
-    observer = new IntersectionObserver(
-      (entries) => {
-        if (images.length > 0 && entries[0].isIntersecting) {
-          doContinueSearch();
+    onMount(() => {
+      observer = new IntersectionObserver(
+        (entries: IntersectionObserverEntry[]) => {
+          if (images.length > 0 && entries[0].isIntersecting) {
+            doContinueSearch();
+          }
+        },
+        {
+          root: null,
+          rootMargin: '400px',
+          threshold: 1,
         }
-      },
-      {
-        root: null,
-        rootMargin: '400px',
-        threshold: 1,
-      }
-    );
-    observer.observe(document.getElementById('loadMore'));
+      );
+      observer.observe(document.getElementById('loadMore')!);
 
-    lazyLoadImageObserver = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const img = entry.target;
-          const src = img.getAttribute('data-src');
-          img.setAttribute('src', src);
-          lazyLoadImageObserver.unobserve(img);
-        }
+      lazyLoadImageObserver = new IntersectionObserver((entries: IntersectionObserverEntry[]) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const img = entry.target;
+            const src = img.getAttribute('data-src') || '';
+            img.setAttribute('src', src);
+            lazyLoadImageObserver.unobserve(img);
+          }
+        });
       });
     });
-  });
 
-  const doSearch = async () => {
-    const res = await fetch(`${PUBLIC_API_SERVER}/search/tags?q=${tags.join(',')}`);
+    const doSearch = async () => {
+      const res = await fetch(`${PUBLIC_API_SERVER}/search/tags?q=${tags.join(',')}`);
 
-    if (res.ok) {
-      const data = await res.json();
+      if (res.ok) {
+        const data: SubmissionDetail[] = await res.json();
 
-      images = data.map((submission) => createImageObject(submission));
-    }
-  };
+        images = data.map((submission) => createImageObject(submission));
+      }
+    };
 
-  const doContinueSearch = async () => {
-    if (images.length === 0) {
-      return;
-    }
+    const doContinueSearch = async () => {
+      if (images.length === 0) {
+        return;
+      }
 
-    const lastImage = images.at(-1);
+      const lastImage = images.at(-1)!;
 
-    const res = await fetch(
-      `${PUBLIC_API_SERVER}/search/tags?q=${tags.join(',')}&before=${lastImage.create_timestamp}`
-    );
+      const res = await fetch(
+        `${PUBLIC_API_SERVER}/search/tags?q=${tags.join(',')}&before=${lastImage.create_timestamp}`
+      );
 
-    if (res.ok) {
-      const data = await res.json();
+      if (res.ok) {
+        const data: SubmissionDetail[] = await res.json();
 
-      let concatedImages = [...images];
-      const newImages = data.map((submission) => createImageObject(submission));
+        let concatedImages = [...images];
+        const newImages = data.map((submission) => createImageObject(submission));
 
-      newImages.forEach((image) => {
-        if (concatedImages.findLastIndex((i) => i._id === image._id) === -1) {
-          concatedImages.push(image);
-        }
-      });
-      images = concatedImages;
-    }
-  };
+        newImages.forEach((image) => {
+          if (concatedImages.findLastIndex((i) => i._id === image._id) === -1) {
+            concatedImages.push(image);
+          }
+        });
+        images = concatedImages;
+      }
+    };
 
-  const openDialog = (image) => {
-    selectedImage = image;
-    modal.showModal();
-  };
+    const openDialog = (image: ImageObject) => {
+      selectedImage = image;
+      modal.showModal();
+    };
 
-  onDestroy(() => {
-    if (observer) {
-      observer.disconnect();
-    }
-    if (lazyLoadImageObserver) {
-      lazyLoadImageObserver.disconnect();
-    }
-  });
-</script>
+    onDestroy(() => {
+      if (observer) {
+        observer.disconnect();
+      }
+      if (lazyLoadImageObserver) {
+        lazyLoadImageObserver.disconnect();
+      }
+    });
+  </script>
 
-<svelte:head>
-  <title>Favorite Search</title>
-  <meta name="description" content="Search for your favorite tags" />
-</svelte:head>
+  <svelte:head>
+    <title>Favorite Search</title>
+    <meta name="description" content="Search for your favorite tags" />
+  </svelte:head>
 
 <div class="root container">
   <nav class="search-bar">
@@ -109,7 +111,7 @@
   </nav>
   <div class="gallery">
     {#each images as image}
-      <figure class={`thumbnail ${image.provider}`} on:click={() => openDialog(image)}>
+      <figure class={`thumbnail ${image.provider}`} on:click={() => openDialog(image)} on:keydown={(e) => e.key === 'Enter' && openDialog(image)}>
         <LazyImg srcset={image.thumbnail_urls} alt={image.title} />
         <figcaption>{image.title}<br /><span class="artist">by {image.username}</span></figcaption>
       </figure>
@@ -117,6 +119,7 @@
   </div>
   <div id="loadMore">...</div>
 
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
   <dialog
     bind:this={modal}
     on:click={() => {
@@ -227,13 +230,6 @@
     border-color: #40b3ff;
   }
 
-  .gallery .thumbnail img,
-  .gallery .thumbnail picture {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
   dialog {
     width: auto;
     height: auto;
@@ -241,11 +237,5 @@
     max-height: 100%;
     border: none;
     background-color: rgba(0, 0, 0, 0.5);
-  }
-
-  dialog picture * {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
   }
 </style>

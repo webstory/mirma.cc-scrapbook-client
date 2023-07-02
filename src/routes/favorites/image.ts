@@ -53,6 +53,11 @@ export const providerMap: { [key in Provider]: ProviderConfig } = {
   },
 };
 
+export interface ImageObject extends SubmissionDetail {
+  urls: string[];
+  thumbnail_urls: string[];
+}
+
 export const createImageObject = (s: SubmissionDetail) => {
   const provider = providerMap[s.provider];
   return {

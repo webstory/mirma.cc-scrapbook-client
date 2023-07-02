@@ -6,9 +6,9 @@
   let src = '';
   export let alt = '';
 
-  export let srcset = [];
+  export let srcset: string[] = [];
 
-  let observer;
+  let observer: IntersectionObserver;
 
   onMount(() => {
     if (srcset.length === 0) {
@@ -27,10 +27,10 @@
             if (srcset.length === 0) {
               return;
             }
-            img.src = srcset.shift();
+            img.src = srcset.shift()!;
           };
 
-          img.src = srcset.shift();
+          img.src = srcset.shift()!;
         }
       },
       {
