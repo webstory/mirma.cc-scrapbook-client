@@ -110,7 +110,7 @@
     <button class="btn" on:click={doSearch}>Search</button>
   </nav>
   <div class="gallery">
-    {#each images as image}
+    {#each images as image (image._id)}
       <figure class={`thumbnail ${image.provider}`} on:click={() => openDialog(image)} on:keydown={(e) => e.key === 'Enter' && openDialog(image)}>
         <LazyImg srcset={image.thumbnail_urls} alt={image.title} />
         <figcaption>{image.title}<br /><span class="artist">by {image.username}</span></figcaption>
